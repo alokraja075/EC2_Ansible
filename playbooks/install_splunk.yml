@@ -1,0 +1,7 @@
+---
+- name: Install Splunk on ec2 instances
+  hosts: webservers
+  gather_facts: yes
+  become: yes
+  roles:
+    - splunk
