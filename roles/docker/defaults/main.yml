@@ -1,0 +1,2 @@
+nginx_image: "nginx:stable-alpine"
+web_root: "/var/www/html"

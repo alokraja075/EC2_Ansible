@@ -1,0 +1,105 @@
+---
+- name: Ensure prerequisites are present (docker, pip)
+  block:
+    - name: Install Docker (primary)
+      ansible.builtin.dnf:
+        name: docker
+        state: present
+      register: docker_install
+      ignore_errors: true
+
+    - name: Fallback - install moby-engine if docker not available
+      ansible.builtin.dnf:
+        name: moby-engine
+        state: present
+      when: docker_install is failed
+
+    - name: Install python3-pip for Docker SDK
+      ansible.builtin.dnf:
+        name: python3-pip
+        state: present
+
+- name: Enable and start Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add ec2-user to docker group
+  ansible.builtin.user:
+    name: ec2-user
+    groups: docker
+    append: yes
+
+- name: Ensure web root exists
+  ansible.builtin.file:
+    path: "{{ web_root }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy simple index.html
+  ansible.builtin.copy:
+    dest: "{{ web_root }}/index.html"
+    content: |
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Nginx via Docker</title>
+        <style>
+          body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 2rem; background: #0b1221; color: #e6edf3; }
+          .card { max-width: 720px; margin: 4rem auto; background: #111a2b; border: 1px solid #1f2a44; border-radius: 12px; padding: 2rem; box-shadow: 0 12px 30px rgba(0,0,0,0.25); }
+          h1 { margin: 0 0 0.5rem; font-size: 2rem; }
+          p { margin: 0.25rem 0; color: #9fb2c5; }
+          code { background: #0e1728; border: 1px solid #1c2844; padding: 0.2rem 0.4rem; border-radius: 6px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>🚀 Nginx running in Docker</h1>
+          <p>Deployed via Ansible on Amazon Linux 2023.</p>
+          <p>Image: <code>{{ nginx_image }}</code></p>
+        </div>
+      </body>
+      </html>
+    mode: "0644"
+
+- name: Stop and disable any existing Nginx service (to free port 80)
+  ansible.builtin.systemd:
+    name: nginx
+    state: stopped
+    enabled: no
+  register: stop_nginx
+  failed_when: false
+
+- name: Pull Nginx image via Docker CLI
+  ansible.builtin.command:
+    cmd: "docker pull {{ nginx_image }}"
+  register: pull_result
+  changed_when: "'Status: Image is up to date' not in pull_result.stdout"
+
+- name: Remove existing nginx container if present
+  ansible.builtin.command:
+    cmd: "docker rm -f nginx"
+  register: rm_result
+  failed_when: false
+  changed_when: "'No such container' not in rm_result.stderr"
+
+- name: Run Nginx container via Docker CLI
+  ansible.builtin.command:
+    cmd: >-
+      docker run -d --name nginx -p 80:80
+      -v {{ web_root }}:/usr/share/nginx/html:ro
+      --restart always {{ nginx_image }}
+  register: run_result
+  changed_when: true
+
+- name: Show container status
+  ansible.builtin.command:
+    cmd: "docker ps --filter name=nginx"
+  register: ps_result
+
+- name: Debug container info
+  ansible.builtin.debug:
+    var: ps_result.stdout

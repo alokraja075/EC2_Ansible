@@ -1,0 +1,7 @@
+---
+- name: Install Docker and run Nginx container
+  hosts: webservers
+  gather_facts: yes
+  become: yes
+  roles:
+    - docker
