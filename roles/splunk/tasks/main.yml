@@ -1,0 +1,55 @@
+---
+- name: Install required packages
+  dnf:
+    name:
+      - curl-minimal
+      - tar
+    state: present
+
+- name: Create Splunk installation directory
+  file:
+    path: /opt
+    state: directory
+    mode: '0755'
+
+- name: Download Splunk Enterprise
+  get_url:
+    url: "https://download.splunk.com/products/splunk/releases/9.1.2/linux/splunk-9.1.2-b6b9c8185839-Linux-x86_64.tgz"
+    dest: /tmp/splunk.tgz
+    mode: '0644'
+  register: download_result
+
+- name: Extract Splunk
+  unarchive:
+    src: /tmp/splunk.tgz
+    dest: /opt
+    remote_src: yes
+    creates: /opt/splunk/bin/splunk
+
+- name: Set Splunk ownership
+  file:
+    path: /opt/splunk
+    owner: root
+    group: root
+    recurse: yes
+
+- name: Accept Splunk license and start first time with admin password
+  command: /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt --seed-passwd Admin@123
+  args:
+    creates: /opt/splunk/etc/system/local/server.conf
+  environment:
+    SPLUNK_HOME: /opt/splunk
+
+- name: Enable Splunk to start at boot
+  command: /opt/splunk/bin/splunk enable boot-start
+  args:
+    creates: /etc/init.d/splunk
+
+- name: Restart Splunk to ensure it's running
+  command: /opt/splunk/bin/splunk restart
+  changed_when: true
+
+- name: Clean up downloaded archive
+  file:
+    path: /tmp/splunk.tgz
+    state: absent
