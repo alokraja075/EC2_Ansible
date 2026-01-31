@@ -1,0 +1,23 @@
+---
+# Playbook to install Nginx on EC2 instance
+
+- name: Install Nginx Web Server
+  hosts: webservers
+  gather_facts: yes
+  become: no
+  
+  # roles:
+  #   - nginx
+  tasks:
+    - name: Install Nginx
+      dnf:
+        name: nginx
+        state: latest
+      become: yes
+
+    - name: Start and enable Nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+      become: yes
