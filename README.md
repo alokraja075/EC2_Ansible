@@ -76,26 +76,88 @@ ec2-web | SUCCESS => {
 ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_nginx.yml
 ```
 
-## Execution Result
+## Playbooks Overview
 
-Here's the output when the playbook runs successfully:
+### 1. install_nginx.yml
+Installs and configures Nginx directly on EC2 instances.
 
-![Ansible Playbook Output](./image.png)
+**What it does:**
+- Installs Nginx using dnf package manager
+- Starts the Nginx service
+- Enables Nginx to run on system startup
+
+**Run the playbook:**
+```bash
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_nginx.yml
+```
+
+**Execution Result:**
+
+![Nginx Installation Output](./image.png)
 
 **Result Summary:**
 - ✓ Nginx installed successfully
 - ✓ Nginx started and enabled
 - ✓ Exit code: 0 (success)
 
-## Accessing Your Website
+---
 
-After the playbook completes, open your browser and visit:
+### 2. install_nginx_docker.yml
+Installs Docker and runs Nginx in a Docker container on EC2 instances.
 
+**What it does:**
+- Installs Docker using the docker role
+- Pulls and runs Nginx container
+- Configures container networking and volume mounts
+
+**Run the playbook:**
+```bash
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_nginx_docker.yml
 ```
-http://YOUR_EC2_IP
+
+**Execution Result:**
+
+![Docker Nginx Installation Output](./image1.png)
+
+**Result Summary:**
+- ✓ Docker installed successfully
+- ✓ Nginx Docker container running
+- ✓ Exit code: 0 (success)
+
+---
+
+### 3. install_splunk.yml
+Installs and configures Splunk on EC2 instances.
+
+**What it does:**
+- Installs Splunk Enterprise
+- Initializes Splunk configuration
+- Starts Splunk service
+- Enables Splunk to run on system startup
+
+**Run the playbook:**
+```bash
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_splunk.yml
 ```
 
-You'll see the Nginx welcome page confirming the web server is running.
+**Execution Result:**
+
+![Splunk Installation Output](./splunk.png)
+
+**Result Summary:**
+- ✓ Splunk installed successfully
+- ✓ Splunk service started and enabled
+- ✓ Exit code: 0 (success)
+
+---
+
+## Accessing Your Services
+
+After the playbook completes, you can access:
+
+- **Nginx (Direct):** `http://YOUR_EC2_IP`
+- **Nginx (Docker):** `http://YOUR_EC2_IP`
+- **Splunk:** `http://YOUR_EC2_IP:8000` (default Splunk web port)
 
 ## Nginx Commands
 
