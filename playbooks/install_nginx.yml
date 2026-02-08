@@ -15,6 +15,17 @@
         state: latest
       become: yes
 
+    - name: Install common utilities
+      dnf:
+        name:
+          - curl
+          - wget
+          - jq
+          - unzip
+          - zip
+        state: latest
+      become: yes
+
     - name: Install Nginx
       dnf:
         name: nginx
