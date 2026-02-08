@@ -9,6 +9,12 @@
   # roles:
   #   - nginx
   tasks:
+    - name: Install Git
+      dnf:
+        name: git
+        state: latest
+      become: yes
+
     - name: Install Nginx
       dnf:
         name: nginx
