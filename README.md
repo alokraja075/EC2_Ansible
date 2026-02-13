@@ -151,6 +151,34 @@ ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install
 
 ---
 
+### 4. install_prometheus.yml
+Installs Prometheus (and Node Exporter) on EC2 instances.
+
+**What it does:**
+- Downloads Prometheus from official GitHub releases
+- Installs `prometheus` + `promtool` into `/usr/local/bin`
+- Writes config to `/etc/prometheus/prometheus.yml`
+- Runs Prometheus via systemd on port `9090`
+- (Optional) Installs Node Exporter on port `9100`
+
+**Run the playbook:**
+```bash
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_prometheus.yml
+```
+
+**Common overrides (examples):**
+```bash
+# Disable node exporter
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_prometheus.yml \
+  -e prometheus_install_node_exporter=false
+
+# Add an extra scrape target
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_prometheus.yml \
+  -e 'prometheus_extra_scrape_configs=[{"job_name":"my-app","static_configs":[{"targets":["localhost:8080"]}]}]'
+```
+
+---
+
 ## Accessing Your Services
 
 After the playbook completes, you can access:
@@ -158,6 +186,10 @@ After the playbook completes, you can access:
 - **Nginx (Direct):** `http://YOUR_EC2_IP`
 - **Nginx (Docker):** `http://YOUR_EC2_IP`
 - **Splunk:** `http://YOUR_EC2_IP:8000` (default Splunk web port)
+- **Prometheus:** `http://YOUR_EC2_IP:9090`
+- **Node Exporter:** `http://YOUR_EC2_IP:9100/metrics`
+
+Make sure your EC2 security group allows inbound access to ports `9090` (Prometheus) and optionally `9100` (Node Exporter).
 
 ## Nginx Commands
 
