@@ -1,0 +1,17 @@
+global:
+  scrape_interval: {{ prometheus_scrape_interval }}
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+{% if prometheus_install_node_exporter %}
+  - job_name: "node"
+    static_configs:
+      - targets: ["localhost:9100"]
+{% endif %}
+
+{% if prometheus_extra_scrape_configs is defined and (prometheus_extra_scrape_configs | length) > 0 %}
+{{ prometheus_extra_scrape_configs | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
