@@ -1,0 +1,7 @@
+---
+- name: Install Docker and run SonarQube (Docker + Postgres)
+  hosts: webservers
+  gather_facts: yes
+  become: yes
+  roles:
+    - sonarqube_docker
