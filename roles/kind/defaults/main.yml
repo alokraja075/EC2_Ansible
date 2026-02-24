@@ -1,0 +1,16 @@
+---
+# kind / Kubernetes tooling versions
+kind_version: "v0.22.0"
+# Kubernetes version is controlled by the node image tag
+# See: https://github.com/kubernetes-sigs/kind/releases
+kind_node_image: "kindest/node:v1.29.4"
+
+kubectl_version: "v1.29.4"
+
+# Cluster settings
+kind_cluster_name: "kind"
+kind_wait: "120s"
+
+# User to receive kubeconfig
+kind_kubeconfig_user: "ec2-user"
+kind_kubeconfig_path: "/home/{{ kind_kubeconfig_user }}/.kube/config"
