@@ -1,0 +1,139 @@
+---
+- name: Ensure prerequisites are present (docker, pip)
+  block:
+    - name: Install Docker (primary)
+      ansible.builtin.dnf:
+        name: docker
+        state: present
+      register: docker_install
+      ignore_errors: true
+
+    - name: Fallback - install moby-engine if docker not available
+      ansible.builtin.dnf:
+        name: moby-engine
+        state: present
+      when: docker_install is failed
+
+    - name: Install python3-pip for Docker SDK
+      ansible.builtin.dnf:
+        name: python3-pip
+        state: present
+
+- name: Enable and start Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add ec2-user to docker group
+  ansible.builtin.user:
+    name: ec2-user
+    groups: docker
+    append: yes
+  failed_when: false
+
+- name: Apply SonarQube required sysctl settings
+  when: sonarqube_set_sysctl | bool
+  block:
+    - name: Set vm.max_map_count
+      ansible.builtin.sysctl:
+        name: vm.max_map_count
+        value: "{{ sonarqube_vm_max_map_count }}"
+        state: present
+        reload: yes
+
+    - name: Set fs.file-max
+      ansible.builtin.sysctl:
+        name: fs.file-max
+        value: "{{ sonarqube_fs_file_max }}"
+        state: present
+        reload: yes
+
+- name: Ensure SonarQube persistence directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ sonarqube_base_dir }}"
+    - "{{ sonarqube_data_dir }}"
+    - "{{ sonarqube_extensions_dir }}"
+    - "{{ sonarqube_logs_dir }}"
+    - "{{ sonarqube_db_data_dir }}"
+
+- name: Ensure SonarQube docker network exists
+  ansible.builtin.command:
+    cmd: "docker network create {{ sonarqube_network_name }}"
+  register: net_create
+  changed_when: "net_create.rc == 0 and 'already exists' not in (net_create.stderr | lower)"
+  failed_when: "net_create.rc != 0 and 'already exists' not in (net_create.stderr | lower)"
+
+- name: Pull Postgres image
+  ansible.builtin.command:
+    cmd: "docker pull {{ postgres_image }}"
+  register: pull_postgres
+  changed_when: "'Image is up to date' not in pull_postgres.stdout"
+
+- name: Pull SonarQube image
+  ansible.builtin.command:
+    cmd: "docker pull {{ sonarqube_image }}"
+  register: pull_sonar
+  changed_when: "'Image is up to date' not in pull_sonar.stdout"
+
+- name: Remove existing SonarQube containers if present
+  ansible.builtin.command:
+    cmd: "docker rm -f {{ item }}"
+  loop:
+    - "{{ sonarqube_container_name }}"
+    - "{{ sonarqube_db_container_name }}"
+  register: rm_result
+  failed_when: false
+  changed_when: true
+
+- name: Run Postgres container for SonarQube
+  ansible.builtin.command:
+    cmd: >-
+      docker run -d --name {{ sonarqube_db_container_name }}
+      --network {{ sonarqube_network_name }}
+      -e POSTGRES_USER={{ sonarqube_db_user }}
+      -e POSTGRES_PASSWORD={{ sonarqube_db_password }}
+      -e POSTGRES_DB={{ sonarqube_db_name }}
+      -v {{ sonarqube_db_data_dir }}:/var/lib/postgresql/data
+      --restart unless-stopped
+      {{ postgres_image }}
+  register: run_db
+  changed_when: true
+
+- name: Run SonarQube container
+  ansible.builtin.command:
+    cmd: >-
+      docker run -d --name {{ sonarqube_container_name }}
+      --network {{ sonarqube_network_name }}
+      -p {{ sonarqube_host_port }}:9000
+      -e SONAR_JDBC_URL=jdbc:postgresql://{{ sonarqube_db_container_name }}:5432/{{ sonarqube_db_name }}
+      -e SONAR_JDBC_USERNAME={{ sonarqube_db_user }}
+      -e SONAR_JDBC_PASSWORD={{ sonarqube_db_password }}
+      -v {{ sonarqube_data_dir }}:/opt/sonarqube/data
+      -v {{ sonarqube_extensions_dir }}:/opt/sonarqube/extensions
+      -v {{ sonarqube_logs_dir }}:/opt/sonarqube/logs
+      --restart unless-stopped
+      {{ sonarqube_image }}
+  register: run_sonar
+  changed_when: true
+
+- name: Wait for SonarQube to start responding on port {{ sonarqube_host_port }}
+  ansible.builtin.wait_for:
+    port: "{{ sonarqube_host_port }}"
+    delay: 10
+    timeout: 300
+
+- name: Show running SonarQube containers
+  ansible.builtin.command:
+    cmd: "docker ps --filter name={{ sonarqube_container_name }} --filter name={{ sonarqube_db_container_name }}"
+  register: ps_result
+
+- name: Debug container info
+  ansible.builtin.debug:
+    var: ps_result.stdout
