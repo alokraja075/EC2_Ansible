@@ -188,8 +188,31 @@ After the playbook completes, you can access:
 - **Splunk:** `http://YOUR_EC2_IP:8000` (default Splunk web port)
 - **Prometheus:** `http://YOUR_EC2_IP:9090`
 - **Node Exporter:** `http://YOUR_EC2_IP:9100/metrics`
+- **SonarQube (Docker):** `http://YOUR_EC2_IP:9000`
 
 Make sure your EC2 security group allows inbound access to ports `9090` (Prometheus) and optionally `9100` (Node Exporter).
+
+For SonarQube, allow inbound access to port `9000`.
+
+---
+
+### 5. install_sonarqube_docker.yml
+Runs SonarQube in Docker with a PostgreSQL container for persistence.
+
+**What it does:**
+- Installs Docker (dnf) and starts the Docker service
+- Sets required sysctl values for SonarQube (embedded Elasticsearch)
+- Runs `postgres` container + `sonarqube` container on a dedicated Docker network
+- Persists SonarQube data under `/opt/sonarqube`
+
+**Run the playbook:**
+```bash
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_sonarqube_docker.yml
+```
+
+**Login:**
+- URL: `http://YOUR_EC2_IP:9000`
+- Default credentials: `admin` / `admin` (you will be prompted to change it)
 
 ## Nginx Commands
 
