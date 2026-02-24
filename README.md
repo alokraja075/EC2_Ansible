@@ -179,6 +179,27 @@ ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install
 
 ---
 
+### 5. install_kind.yml
+Installs `kind` and `kubectl`, then creates a local Kubernetes cluster using Docker.
+
+**What it does:**
+- Installs Docker and starts the Docker service
+- Downloads `kubectl` and `kind` binaries to `/usr/local/bin`
+- Creates a kind cluster (default name: `kind`)
+- Writes kubeconfig to `/home/ec2-user/.kube/config`
+
+**Run the playbook:**
+```bash
+ANSIBLE_ROLES_PATH=./roles ansible-playbook -i inventory/hosts playbooks/install_kind.yml
+```
+
+**Verify on the EC2 instance:**
+```bash
+kubectl get nodes
+```
+
+Note: kind is primarily for local/dev clusters. If you need to access the Kubernetes API server from outside the instance, you’ll typically want a custom kind config to expose/mmap the API server port.
+
 ## Accessing Your Services
 
 After the playbook completes, you can access:
