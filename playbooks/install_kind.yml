@@ -1,0 +1,7 @@
+---
+- name: Install kind + kubectl and create a kind cluster
+  hosts: webservers
+  gather_facts: yes
+  become: yes
+  roles:
+    - kind
