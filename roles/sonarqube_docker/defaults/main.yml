@@ -1,0 +1,29 @@
+---
+# SonarQube Docker deployment settings
+sonarqube_version: "10.6-community"
+sonarqube_image: "sonarqube:{{ sonarqube_version }}"
+
+postgres_version: "16-alpine"
+postgres_image: "postgres:{{ postgres_version }}"
+
+sonarqube_host_port: 9000
+sonarqube_container_name: "sonarqube"
+sonarqube_db_container_name: "sonarqube-db"
+sonarqube_network_name: "sonarqube-net"
+
+# Persistence
+sonarqube_base_dir: "/opt/sonarqube"
+sonarqube_data_dir: "{{ sonarqube_base_dir }}/data"
+sonarqube_extensions_dir: "{{ sonarqube_base_dir }}/extensions"
+sonarqube_logs_dir: "{{ sonarqube_base_dir }}/logs"
+sonarqube_db_data_dir: "{{ sonarqube_base_dir }}/postgres"
+
+# Database settings
+sonarqube_db_name: "sonarqube"
+sonarqube_db_user: "sonarqube"
+sonarqube_db_password: "sonarqube"
+
+# Kernel settings required for embedded Elasticsearch
+sonarqube_set_sysctl: true
+sonarqube_vm_max_map_count: 262144
+sonarqube_fs_file_max: 131072
